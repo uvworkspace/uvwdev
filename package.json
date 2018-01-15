@@ -1,0 +1,20 @@
+{
+  "name": "uvwdev",
+  "version": "0.0.1",
+  "description": "Some dev utilities",
+  "main": "index.js",
+  "repository": "https://github.com/uvworkspace/uvwdev",
+  "author": "uvworkspace <uvw@mytraces.net>",
+  "license": "MIT",
+  "dependencies": {
+    "browser-sync": "^2.23.5",
+    "jsdom": "^11.5.1",
+    "strip-ansi": "^4.0.0",
+    "uvw": "^0.0.2",
+    "uvwlib": "^0.0.2",
+    "webpack": "^3.10.0",
+    "webpack-dev-middleware": "^2.0.4",
+    "webpack-hot-middleware": "^2.21.0",
+    "webpack-merge": "^4.1.1"
+  }
+}

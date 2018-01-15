@@ -1,0 +1,86 @@
+'use strict'
+
+var _rdy = null
+const _mods = {}
+{% if groups.length %}const _grps = {}{% endif %}
+const _slice = Array.prototype.slice
+
+function loadjs (name) {
+  if (!name) return Promise.resolve()
+  const idx = name.indexOf(':')
+  const nmod = idx === -1 ? name : name.slice(0, idx)
+  if (!nmod) return Promise.resolve()
+  const cmd = idx === -1 ? null : name.slice(idx + 1)
+  const args = _slice.call(arguments, 1)
+
+  const mod = _mods[nmod] || (_mods[nmod] = _ready().then(function () {
+    return new Promise(function (resolve) { _loadjs(nmod, resolve) })
+  }))
+  return _apply(mod, cmd, args)
+}
+
+function _loadjs (nmod, cb) {
+  {%- if modules.length %}
+  switch (nmod) {
+  {%- for mod in modules %}
+    case '{{mod.name}}':
+      return require.ensure([], function (require) {
+        return cb(require('{{mod.path}}'))
+      }, function (err) { console.error(err); cb() }
+      {%- if mod.chunk -%}, '{{mod.chunk}}'{%- endif -%})
+  {%- endfor %}
+  }
+  {% endif %}
+  {%- for grp in groups -%}
+  {% if not loop.first %}else {% endif -%}
+  if (nmod.indexOf('{{grp.prefix}}') === 0) {
+    var grp = _grps['{{grp.prefix}}']
+    if (grp) return cb(grp[nmod])
+
+    return require.ensure([], function (require) {
+      const mods = {}
+      {%- for mod in grp.modules %}
+      mods['{{grp.prefix}}{{mod.name}}'] = require('{{mod.path}}')
+      {%- endfor %}
+      _grps['{{grp.prefix}}'] = mods
+      cb(mods[nmod])
+    }, function (err) { console.error(err); cb() })
+  }
+  {%- endfor -%}
+  cb()
+}
+
+function _ready () {
+  if (!_rdy) {
+    if (document.readyState === 'complete' || document.readyState !== 'loading') {
+      _rdy = Promise.resolve()
+    } else {
+      _rdy = new Promise(function (resolve) {
+        document.addEventListener('DOMContentLoaded', resolve)
+      })
+    }
+  }
+  return _rdy
+}
+
+function _apply (p, cmd, args) {
+  return p.then(function (obj) {
+    if (cmd) return obj[cmd].apply(obj, args)
+    return typeof obj === 'function' && obj.name !== 'loadjs'
+      ? obj.apply(null, args) : obj
+  })
+}
+
+loadjs.load = function () {
+  var q = loadjs.apply(null, arguments)
+  return {
+    load: function () {
+      var args2 = arguments
+      return q.then(function (loader) {
+        return loader.load.apply(null, args2)
+      })
+    }
+  }
+}
+
+module.exports = loadjs
